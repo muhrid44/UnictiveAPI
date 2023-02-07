@@ -9,9 +9,10 @@ namespace RepositoryInterface
 {
     public interface IUserRepository
     {
-        Task<string> Create(UserModel model);
+        Task<UserModel> Create(UserModel model);
         Task<string> CreateHobby(UserModel UserID, string hobby);
         Task<string> CreateUserAuth(UserAuthModel model);
+        Task<string> UpdateUserAuth(UserAuthModel model);
         Task<bool> EmailValidation(UserModel model);
         Task<bool> EmailExist(UserModel model);
         Task<UserAuthModel> PasswordVerification(UserModel model);

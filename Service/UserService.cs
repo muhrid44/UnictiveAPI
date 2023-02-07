@@ -63,13 +63,13 @@ namespace Service
                 return NotificationModel.ErrorMessage;
             }
         }
-        public async Task<string> CreateHobby(UserModel hobbyModel)
+        public async Task<string> CreateHobby(UserModel model)
         {
-            if(hobbyModel.Hobbies.Count() != 0)
+            if(model.Hobbies.Count() != 0)
             {
-                foreach(var hobby in hobbyModel.Hobbies)
+                foreach(var hobby in model.Hobbies)
                 {
-                    await _userRepository.CreateHobby(hobbyModel, hobby);
+                    await _userRepository.CreateHobby(model, hobby);
                 }
 
                 return "OK";
@@ -138,6 +138,58 @@ namespace Service
             if (String.IsNullOrWhiteSpace(updated.Email))
             {
                 updatedUser.Email = model.Email;
+
+
+                if (String.IsNullOrWhiteSpace(updated.Phone))
+                {
+                    updatedUser.Phone = model.Phone;
+
+                    var result = await _userRepository.UpdateUser(updatedUser, model.Id, model.Email);
+
+                    if (!String.IsNullOrWhiteSpace(updated.Password))
+                    {
+                        PasswordUtility.PasswordHashGenerator(updated.Password, out byte[] passwordHash, out byte[] passwordSalt);
+
+                        UserAuthModel userAuthModel = new UserAuthModel();
+                        userAuthModel.Email = updatedUser.Email;
+                        userAuthModel.PasswordHash = passwordHash;
+                        userAuthModel.PasswordSalt = passwordSalt;
+                        await _userRepository.UpdateUserAuth(userAuthModel);
+                    }
+
+                    return result;
+
+                }
+                else
+                {
+                    var phoneValidation = _phoneValidation.Validate(updated);
+
+                    updatedUser.Phone = updated.Phone;
+
+                    if (phoneValidation)
+                    {
+                        var result = await _userRepository.UpdateUser(updatedUser, model.Id, model.Email);
+
+                        if (!String.IsNullOrWhiteSpace(updated.Password))
+                        {
+                            PasswordUtility.PasswordHashGenerator(updated.Password, out byte[] passwordHash, out byte[] passwordSalt);
+
+                            UserAuthModel userAuthModel = new UserAuthModel();
+                            userAuthModel.Email = updatedUser.Email;
+                            userAuthModel.PasswordHash = passwordHash;
+                            userAuthModel.PasswordSalt = passwordSalt;
+                            await _userRepository.UpdateUserAuth(userAuthModel);
+                        }
+
+                        return result;
+
+                    }
+                    else
+                    {
+                        return NotificationModel.ErrorMessage;
+                    }
+
+                }
             } else
             {
                 var emailValidation = await _userRepository.EmailValidation(updated);
@@ -152,32 +204,59 @@ namespace Service
 
                         var result = await _userRepository.UpdateUser(updatedUser, model.Id, model.Email);
 
+                        if (!String.IsNullOrWhiteSpace(updated.Password))
+                        {
+                            PasswordUtility.PasswordHashGenerator(updated.Password, out byte[] passwordHash, out byte[] passwordSalt);
+
+                            UserAuthModel userAuthModel = new UserAuthModel();
+                            userAuthModel.Email = updatedUser.Email;
+                            userAuthModel.PasswordHash = passwordHash;
+                            userAuthModel.PasswordSalt = passwordSalt;
+                            await _userRepository.UpdateUserAuth(userAuthModel);
+                        }
+
                         return result;
 
                     }
                     else
                     {
-                        var phoneValidation = _phoneValidation.Validate(updated);
-
                         updatedUser.Phone = updated.Phone;
+
+                        var phoneValidation = _phoneValidation.Validate(updatedUser);
 
                         if (phoneValidation)
                         {
                             var result = await _userRepository.UpdateUser(updatedUser, model.Id, model.Email);
 
+                            if (!String.IsNullOrWhiteSpace(updated.Password))
+                            {
+                                PasswordUtility.PasswordHashGenerator(updated.Password, out byte[] passwordHash, out byte[] passwordSalt);
+
+                                UserAuthModel userAuthModel = new UserAuthModel();
+                                userAuthModel.Email = updatedUser.Email;
+                                userAuthModel.PasswordHash = passwordHash;
+                                userAuthModel.PasswordSalt = passwordSalt;
+                                await _userRepository.UpdateUserAuth(userAuthModel);
+                            }
+
                             return result;
 
-                        } else
+                        }
+                        else
                         {
                             return NotificationModel.ErrorMessage;
                         }
-
                     }
-                } else
+                }
+                else
                 {
                     return NotificationModel.ErrorMessage;
+
                 }
+
             }
+
+
 
             return NotificationModel.ErrorMessage;
 

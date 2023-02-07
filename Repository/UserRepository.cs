@@ -16,36 +16,32 @@ namespace Repository
 {
     public class UserRepository : IUserRepository
     {
-        public async Task<string> Create(UserModel model)
+        public async Task<UserModel> Create(UserModel model)
         {
-            try
-            {
+
                 using (var db = new NpgsqlConnection(ApplicationSettings.connectionString))
                 {
-                    var query = await db.ExecuteAsync(@"INSERT INTO ""usertable"" 
+                    var query = await db.QueryAsync<int>(@"INSERT INTO ""usertable"" 
                 (""name"", ""email"", ""phone"") 
                 VALUES
-                (@Name, @Email, @Phone);", model);
+                (@Name, @Email, @Phone) RETURNING ""id"";", model);
 
-                    return NotificationModel.Success;
+                    model.Id = query.FirstOrDefault();
+                    return model;
                 }
-            }
-            catch (Exception e)
-            {
-                return NotificationModel.Failed + ", caused by " + e;
-            }
+            
 
         }
-        public async Task<string> CreateHobby(UserModel UserEmail, string hobby)
+        public async Task<string> CreateHobby(UserModel model, string hobby)
         {
             try
             {
                 using (var db = new NpgsqlConnection(ApplicationSettings.connectionString))
                 {
                     var query = await db.ExecuteAsync($@"INSERT INTO ""hobbytable"" 
-                (""useremail"", ""hobby"") 
+                (""userid"", ""hobby"") 
                 VALUES
-                ('{UserEmail.Email}', '{hobby}');");
+                ('{model.Id}', '{hobby}');");
 
                     return NotificationModel.Success;
                 }
@@ -91,6 +87,25 @@ namespace Repository
                 (""email"", ""passwordhash"", ""passwordsalt"") 
                 VALUES
                 (@Email, @PasswordHash, @PasswordSalt);", model);
+
+                    return NotificationModel.Success;
+                }
+            }
+            catch (Exception e)
+            {
+                return NotificationModel.Failed + ", caused by " + e;
+            }
+        }
+        public async Task<string> UpdateUserAuth(UserAuthModel model)
+        {
+            try
+            {
+                using (var db = new NpgsqlConnection(ApplicationSettings.connectionString))
+                {
+                    var query = await db.ExecuteAsync(@"UPDATE ""passwordhashtable"" 
+                SET ""passwordhash"" = @PasswordHash,
+                    ""passwordsalt"" = @PasswordSalt
+                    WHERE ""email"" = @Email;", model);
 
                     return NotificationModel.Success;
                 }
@@ -210,15 +225,15 @@ namespace Repository
             {
                 using (var db = new NpgsqlConnection(ApplicationSettings.connectionString))
                 {
-
+                    var changeEmailForPasswordHashed = await db.ExecuteAsync($@"UPDATE ""passwordhashtable""
+                SET ""email"" = @Email
+                WHERE ""email"" = '{email}';", model);
 
                     var query = await db.ExecuteAsync($@"UPDATE ""usertable""
                 SET ""name"" = @Name, ""email"" = @Email, ""phone"" = @Phone
                 WHERE ""id"" = '{id}';", model);
 
-                    var changeEmailForPasswordHashed = await db.ExecuteAsync($@"UPDATE ""passwordhashtable""
-                SET ""email"" = @Email
-                WHERE ""email"" = '{email}';", model);
+
 
                     return NotificationModel.Success;
                 }
