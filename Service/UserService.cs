@@ -89,10 +89,17 @@ namespace Service
 
             if(passwordHashed != null)
             {
-                ApplicationSettings.TokenLogin = JWTUtility.CreateToken(passwordHashed);
+                bool isPassCorrect = PasswordUtility.VerifyPasswordHash(model.Password, passwordHashed.PasswordHash, passwordHashed.PasswordSalt);
+
+                if (isPassCorrect)
+                {
+                    ApplicationSettings.TokenLogin = JWTUtility.CreateToken(passwordHashed);
+                    return isPassCorrect;
+
+                }
             }
 
-            return PasswordUtility.VerifyPasswordHash(model.Password, passwordHashed.PasswordHash, passwordHashed.PasswordSalt);
+            return false;
         }
 
         public async Task<UserModel> GetUserProfile(string email)
